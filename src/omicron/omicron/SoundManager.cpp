@@ -104,7 +104,7 @@ void SoundManager::setup(Setting& settings)
 	{
 		radius = 10000;
 	}
-	ofmsg("SoundManager::setup: Display radius: %1%", %radius );
+	ofmsg("SoundManager::setup: Display radius: %1%", %radius  );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -668,14 +668,12 @@ void SoundManager::updateInstancePositions()
 			sendOSCMessage(msg3);
 			ofmsg( "userx %1% and userz %2%", %userPosition[0] %userPosition[2] );
 
-			//Calculate speaker angle relative to user
+			// Calculate speaker angle relative to user
 			updateAudioImage(soundLocalPosition, userPosition, inst->getID());
 
 			// Calculate and send the volume rolloff
-			
 			float objToUser3D = Math::sqrt( Math::sqr(userPosition[0] - soundLocalPosition[0]) + Math::sqr(userPosition[1] - soundLocalPosition[1]) + Math::sqr(userPosition[2] - soundLocalPosition[2]) );
 			float newVol = inst->getVolume();
-			//ofmsg( "fetching newVol = %1%", %newVol );
 
 			int rolloffType = 0;
 			if( inst->isRolloffLinear() )
@@ -703,7 +701,10 @@ void SoundManager::updateInstancePositions()
 			msg2.pushInt32(inst->getID());
 			msg2.pushFloat(newVol);
 			
+			// Calculate Apparent Sound Width (ASW) relative to user
+			updateObjectWidth(inst->getWidth(), objToUser3D, inst->getID());
 			environment->getSoundManager()->sendOSCMessage(msg2);
+
 			//if( isDebugEnabled() )
 			//ofmsg("%1%: instanceID %2% rolloff type %3% newVol %4%", %__FUNCTION__ %inst->getID() %rolloffType %newVol );
 		}
@@ -787,12 +788,28 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 	// Calculate and send the speaker angle to sound server
 	float pos = atan2((wallz), (wallx))/3.14159f;//pi
 	pos = pos - 0.5;
-	Message msg4("/setPos");
-	msg4.pushInt32( instID );
-	msg4.pushFloat( pos );
-	sendOSCMessage(msg4);
+
+	Message msg("/setPos");
+	msg.pushInt32( instID );
+	msg.pushFloat( pos );
+	sendOSCMessage(msg);
 	//ofmsg("%1%: pos", %pos );
-}
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void SoundManager::updateObjectWidth(float width, float objToUser3D, int instID)
+{
+	width = width - objToUser3D;
+	if ( width < 1 )
+	{
+		width = 1;
+	}
+
+	Message msg("/setWidth");
+	msg.pushInt32( instID );
+	msg.pushFloat( width );
+	sendOSCMessage(msg);
+	//ofmsg("%1%: width", %width );
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SoundManager::removeInstanceNode(int id)
 {

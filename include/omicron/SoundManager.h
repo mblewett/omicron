@@ -181,6 +181,7 @@ public:
 private:
 	void updateInstancePositions();
 	void updateAudioImage(Vector3f soundLocalPosition, Vector3f userPosition, int instID);
+	void updateObjectWidth(float width, float objToUser3D, int instID);
 	void removeInstanceNode(int);
 private:
 	Ref<SoundEnvironment> environment;

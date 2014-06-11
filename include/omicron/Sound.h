@@ -204,7 +204,7 @@ private:
 	bool stereoSound;
 	float volume;	// Amplitude (0.0 - 1.0)
 	float width;	// Speaker width / nSpeakers (1-20)
-	float wetness;		// Wetness of sound (0.0 - 1.0)
+	float wetness;	// Wetness of sound (0.0 - 1.0)
 	float roomSize;	// Room size / reverb amount (0.0 - 1.0)
 	float pitch;	// Sample rate (1.0 normal, 2.0 one octave up, 0.5 one octave down, -1 backwards
 
