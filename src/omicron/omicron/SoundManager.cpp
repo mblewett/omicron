@@ -1,4 +1,4 @@
-/********************************************************************************************************************** 
+ /********************************************************************************************************************** 
  * THE OMICRON PROJECT
  *---------------------------------------------------------------------------------------------------------------------
  * Copyright 2010-2014								Electronic Visualization Laboratory, University of Illinois at Chicago
@@ -102,9 +102,8 @@ void SoundManager::setup(Setting& settings)
 	}
 	else
 	{
-		radius = 10000;
+		radius = 10000; 
 	}
-	ofmsg("SoundManager::setup: Display radius: %1%", %radius  );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -657,16 +656,20 @@ void SoundManager::updateInstancePositions()
 			msg.pushFloat( soundLocalPosition[1] );
 			msg.pushFloat( soundLocalPosition[2] );
 			sendOSCMessage(msg);
-			ofmsg( "objectx %1% and objectz %2%", %soundLocalPosition[0] %soundLocalPosition[2] );
+			//ofmsg( "objectx %1% and objectz %2%", %soundLocalPosition[0] %soundLocalPosition[2] );
 
+			// Calculate and send user location (pos and magnitude)
+			Vector3f userPosition = environment->getUserPosition();
+			float userPos = atan2((userPosition[2]), (userPosition[0]))/3.14159f;//pi
+			userPos = userPos - 0.5;
+			float userMag = Math::sqrt( Math::sqr(userPosition[0]) + Math::sqr(userPosition[2]));
+			 
 			Message msg3("/setUserLoc");
 			msg3.pushInt32(inst->getID());
-			Vector3f userPosition = environment->getUserPosition();
-			msg3.pushFloat( userPosition[0] );
-			msg3.pushFloat( userPosition[1] );
-			msg3.pushFloat( userPosition[2] );
+			msg3.pushFloat( userPos );
+			msg3.pushFloat( userMag );
 			sendOSCMessage(msg3);
-			ofmsg( "userx %1% and userz %2%", %userPosition[0] %userPosition[2] );
+			ofmsg( "userPos %1% and userMag %2%", %userPos %userMag );
 
 			// Calculate speaker angle relative to user
 			updateAudioImage(soundLocalPosition, userPosition, inst->getID());
@@ -783,7 +786,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 			}
 		}
 	}
-	ofmsg( "wallx %1% and wallz %2%", %wallx %wallz );
+	//ofmsg( "wallx %1% and wallz %2%", %wallx %wallz );
 
 	// Calculate and send the speaker angle to sound server
 	float pos = atan2((wallz), (wallx))/3.14159f;//pi
@@ -796,7 +799,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 	//ofmsg("%1%: pos", %pos );
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void SoundManager::updateObjectWidth(float width, float objToUser3D, int instID)
+void SoundManager::updateObjectWidth(float width, float objToUser3D, int ins tID)
 {
 	width = width - objToUser3D;
 	if ( width < 1 )
