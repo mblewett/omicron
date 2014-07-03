@@ -415,16 +415,6 @@ void SoundInstance::play()
 
 	msg.pushFloat( scaledVolume );
 
-	// We're assuming the position was set using setPosition() which has already handled the local coordinates
-	msg.pushFloat( position[0] );
-	msg.pushFloat( position[1] );
-	msg.pushFloat( position[2] );
-	
-	// User's position relative to the audio system
-	msg.pushFloat( audioListener[0] );
-	msg.pushFloat( audioListener[1] );
-	msg.pushFloat( audioListener[2] );
-
 	// Width - nSpeakers 1-20
 	if( environmentSound )
 		msg.pushFloat( 20 );
@@ -458,11 +448,20 @@ void SoundInstance::play()
 	// Trigger for playToPosition ( 0 = off, 1 = on )
 	msg.pushInt32( 0 );
 
-	// Trigger for playToPosition ( 0 = off, 1 = on )
-	msg.pushInt32( 0 );
-
 	// Frame at which you'd like to jump to for playback.  0 is the beginning of the file.
 	msg.pushInt32( 0 );
+
+	// User Position in rad/pi
+	msg.pushInt32( 0 );
+
+	// Volume relative to user
+	msg.pushInt32( 1 );
+
+	// Position of sound object in rad/pi
+	msg.pushInt32( 0 );
+
+	// Radius of environment (planar environments use a large number, i.e. 10000)
+	msg.pushInt32( 10000 );
 
 	environment->getSoundManager()->sendOSCMessage(msg);
 
@@ -544,17 +543,6 @@ void SoundInstance::play( Vector3f position, float volume, float width, float mi
 		scaledVolume =  volume * sound->getVolumeScale();
 	}
 	msg.pushFloat( scaledVolume );
-	
-	// Position in Audio System (local) coordinates
-	localPosition = environment->getSoundManager()->worldToLocalPosition( position );
-	msg.pushFloat( localPosition[0] );
-	msg.pushFloat( localPosition[1] );
-	msg.pushFloat( localPosition[2] );
-	
-	Vector3f audioListener = environment->getUserPosition();
-	msg.pushFloat( audioListener[0] );
-	msg.pushFloat( audioListener[1] );
-	msg.pushFloat( audioListener[2] );
 
 	// Width - nSpeakers 1-20
 	msg.pushFloat( width );
@@ -579,6 +567,18 @@ void SoundInstance::play( Vector3f position, float volume, float width, float mi
 
 	// Frame at which you'd like to jump to for playback.  0 is the beginning of the file.
 	msg.pushInt32( 0 );
+
+		// User Position in rad/pi
+	msg.pushInt32( 0 );
+
+	// Volume relative to user
+	msg.pushInt32( 1 );
+
+	// Position of sound object in rad/pi
+	msg.pushInt32( 0 );
+
+	// Radius of environment (planar environments use a large number, i.e. 10000)
+	msg.pushInt32( 10000 );
 
 	environment->getSoundManager()->sendOSCMessage(msg);
 

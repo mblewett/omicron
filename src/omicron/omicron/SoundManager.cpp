@@ -669,7 +669,7 @@ void SoundManager::updateInstancePositions()
 			msg3.pushFloat( userPos );
 			msg3.pushFloat( userMag );
 			sendOSCMessage(msg3);
-			ofmsg( "userPos %1% and userMag %2%", %userPos %userMag );
+			//ofmsg( "userPos %1% and userMag %2%", %userPos %userMag );
 
 			// Calculate speaker angle relative to user
 			updateAudioImage(soundLocalPosition, userPosition, inst->getID());
@@ -727,7 +727,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 
 	if (abs(userPosition[0] - soundLocalPosition[0]) < 0.1f){
 		flow = 1;
-		ofmsg( "infinite slope case flow = %1%", %flow );
+		//ofmsg( "infinite slope case flow = %1%", %flow );
 
 		wallx = soundLocalPosition[0];
 		if (userPosition[2] > soundLocalPosition[2])
@@ -756,7 +756,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 
 		if(objToCenter < radius){
 			flow = 2;
-			ofmsg( "finite inside case flow = %1%", %flow );
+			//ofmsg( "finite inside case flow = %1%", %flow );
 
 			wallToObject = Math::sqrt( ((wallx1-soundLocalPosition[0])*(wallx1-soundLocalPosition[0]))+((wallz1 - soundLocalPosition[2])*(wallz1 - soundLocalPosition[2])));
 			wallToUser = Math::sqrt( ((wallx1-userPosition[0])*(wallx1-userPosition[0]))+((wallz1 - userPosition[2])*(wallz1 - userPosition[2])));
@@ -772,7 +772,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 		// if object is farther away than radius
 		else{
 			flow = 3;
-			ofmsg( "finite outside case flow = %1%", %flow );
+			//ofmsg( "finite outside case flow = %1%", %flow );
 
 			objToWall1 = Math::sqrt(((soundLocalPosition[0]-wallx1)*(soundLocalPosition[0]-wallx1)) + ((soundLocalPosition[2]-wallz1)*(soundLocalPosition[2]-wallz1)));
 			objToWall2 = Math::sqrt(((soundLocalPosition[0]-wallx2)*(soundLocalPosition[0]-wallx2)) + ((soundLocalPosition[2]-wallz2)*(soundLocalPosition[2]-wallz2)));
@@ -799,7 +799,7 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 	//ofmsg("%1%: pos", %pos );
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void SoundManager::updateObjectWidth(float width, float objToUser3D, int ins tID)
+void SoundManager::updateObjectWidth(float width, float objToUser3D, int instID)
 {
 	width = width - objToUser3D;
 	if ( width < 1 )
