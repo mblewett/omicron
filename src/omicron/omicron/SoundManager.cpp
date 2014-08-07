@@ -801,17 +801,26 @@ void SoundManager::updateAudioImage(Vector3f soundLocalPosition, Vector3f userPo
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SoundManager::updateObjectWidth(float width, float objToUser3D, int instID)
 {
-	width = width - objToUser3D;
-	if ( width < 1 )
+	if (objToUser3D > 0.25)
+	{
+		width = width/objToUser3D;
+	}
+
+	if (width < 1)
 	{
 		width = 1;
+	}
+
+	if (width > 20)
+	{
+		width = 20;
 	}
 
 	Message msg("/setWidth");
 	msg.pushInt32( instID );
 	msg.pushFloat( width );
 	sendOSCMessage(msg);
-	//ofmsg("%1%: width", %width );
+	ofmsg("%1%: width", %width );
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SoundManager::removeInstanceNode(int id)
