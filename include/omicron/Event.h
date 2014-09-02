@@ -66,28 +66,56 @@ namespace omicron
         static const int ExtraDataSize = 1024;
         static const int MaxExtraDataItems = 32;
         static Event::Flags parseButtonName(const String& name);
+        static int parseJointName(const String& name);
 
     public:
         Event();
 
         void copyFrom(const Event& e);
+        //! Serializes this event to a streamable event data packet. Returns the
+        //! size of data to stream.
+        size_t serialize(omicronConnector::EventData* ed) const;
+        //! Deserializes from an event data packet
+        void deserialize(omicronConnector::EventData* ed);
 
-        void reset(Type type, Service::ServiceType serviceType, uint sourceId = 0, int serviceId = -1);
+        void reset(Type type, Service::ServiceType serviceType, uint sourceId = 0, unsigned short serviceId = 0, unsigned short userId = 0);
+        //! Only resets the event sourc eid, keeping the rest of the event data intact.
+        //! Useful when dynamically re-routing events (i.e. to transparently re-associate 
+        //! head tracking sources to applications)
+        void resetSourceId(uint newSourceId);
 
         //! id of the source of this event. Input services associate unique ids to each of their event sources.
         unsigned int getSourceId() const;
 
         //! Type of the service that generated this event.
         Service::ServiceType getServiceType() const;
+
+        //! Used to mark events that have been processed.
         void setProcessed() const;
         bool isProcessed() const;
+
+        // ! Used to mark events that are sent to a single endpoint instead of 
+        //! being broadcast.
+        void setExclusive() const;
+        bool isExclusive() const;
 
         //! Get the event position 
         const Vector3f& getPosition() const;
         void setServiceType(Service::ServiceType type);
 
-        //! Unique id of the service and / or hardware device that generated this event.
-        int getServiceId() const;
+        //! Gets the unique id of the event service that generated this event.
+        //! This value is part of the device tag.
+        unsigned int getServiceId() const;
+        //! Numeric id of the user associated to this event. This value is part 
+        //! of the device tag.
+        unsigned int getUserId() const;
+
+        //! Gets the event device tag. The device tag identifies the service and
+        //! the user associated with this event. The lower two bytes contain
+        //! the service id, while the top two bytes contain the user id. Both
+        //! can be accessed using the getServiceId and getUserId utility
+        //! functions.
+        unsigned int getDeviceTag() const;
 
         //! The event type.
         Type getType() const;
@@ -160,7 +188,7 @@ namespace omicron
     private:
         unsigned int mySourceId;
         enum Service::ServiceType myServiceType;
-        int myServiceId;
+        unsigned int myDeviceTag;
         enum Type myType;
 
         Vector3f myPosition;
@@ -174,6 +202,51 @@ namespace omicron
         int myExtraDataValidMask;
         char myExtraData[ExtraDataSize];
     };
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline
+    size_t Event::serialize(omicronConnector::EventData* ed) const
+    {
+        // Serialize event.
+        ed->timestamp = getTimestamp();
+        ed->sourceId = getSourceId();
+        ed->deviceTag = getDeviceTag();
+        ed->serviceType = getServiceType();
+        ed->type = getType();
+        ed->flags = getFlags();
+        ed->posx = getPosition().x();
+        ed->posy = getPosition().y();
+        ed->posz = getPosition().z();
+        ed->orx = getOrientation().x();
+        ed->ory = getOrientation().y();
+        ed->orz = getOrientation().z();
+        ed->orw = getOrientation().w();
+        ed->extraDataType = getExtraDataType();
+        ed->extraDataItems = getExtraDataItems();
+        ed->extraDataMask = getExtraDataMask();
+        memcpy(ed->extraData, getExtraDataBuffer(), getExtraDataSize());
+
+        // Message size = total event data size - number of unused extra data bytes
+        size_t freextrabytes = omicronConnector::EventData::ExtraDataSize - getExtraDataSize();
+        size_t msgsize = sizeof(*ed) - freextrabytes;
+
+        return msgsize;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline 
+    void Event::deserialize(omicronConnector::EventData* ed)
+    {
+        reset((Event::Type)ed->type,
+            (Service::ServiceType)ed->serviceType,
+            ed->sourceId,
+            (ed->deviceTag & DTServiceIdMask) >> DTServiceIdOffset,
+            (ed->deviceTag & DTUserIdMask) >> DTUserIdOffset);
+        setPosition(ed->posx, ed->posy, ed->posz);
+        setOrientation(ed->orw, ed->orx, ed->ory, ed->orz);
+        setFlags(ed->flags);
+        setExtraData((Event::ExtraDataType)ed->extraDataType, ed->extraDataItems, ed->extraDataMask, (void*)ed->extraData);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     inline 
@@ -190,7 +263,23 @@ namespace omicron
         if(name == "ButtonRight") return ButtonRight;
         if(name == "ButtonUp") return ButtonUp;
         if(name == "ButtonDown") return ButtonDown;
+        if(name == "Ctrl") return Ctrl;
+        if(name == "Alt") return Alt;
+        if(name == "Shift") return Shift;
         return (Event::Flags)0;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline 
+    int Event::parseJointName(const String& name)
+    {
+        if(name == "head") return OMICRON_SKEL_HEAD;
+        if(name == "torso") return OMICRON_SKEL_TORSO;
+        if(name == "leftHand") return OMICRON_SKEL_LEFT_HAND;
+        if(name == "rightHand") return OMICRON_SKEL_RIGHT_HAND;
+        if(name == "leftFoot") return OMICRON_SKEL_LEFT_FOOT;
+        if(name == "rightFoot") return OMICRON_SKEL_RIGHT_FOOT;
+        return -1;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -201,7 +290,7 @@ namespace omicron
     {}
 
     ///////////////////////////////////////////////////////////////////////////
-    inline void Event::reset(Type type, Service::ServiceType serviceType, uint sourceId, int serviceId)
+    inline void Event::reset(Type type, Service::ServiceType serviceType, uint sourceId, unsigned short serviceId, unsigned short userId)
     {
         myType = type;
         mySourceId = sourceId;
@@ -210,12 +299,20 @@ namespace omicron
         myExtraDataItems = 0;
         myExtraDataValidMask = 0;
         myExtraDataType = ExtraDataNull;
-        if(serviceId != -1) myServiceId = serviceId;
+        if(serviceId != 0) myDeviceTag = (serviceId << DTServiceIdOffset);
+        myDeviceTag |= (userId << DTUserIdOffset);
 
         timeb tb;
         ftime( &tb );
         int curTime = tb.millitm + (tb.time & 0xfffff) * 1000; // Millisecond timer
         myTimestamp = curTime;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline 
+    void Event::resetSourceId(uint newSourceId)
+    {
+        mySourceId = newSourceId;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -239,8 +336,16 @@ namespace omicron
     { myServiceType = value;	}
 
     ///////////////////////////////////////////////////////////////////////////
-    inline int Event::getServiceId() const
-    { return myServiceId; }
+    inline unsigned int Event::getServiceId() const
+    { return (myDeviceTag & DTServiceIdMask) >> DTServiceIdOffset; }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline unsigned int Event::getUserId() const
+    { return (myDeviceTag & DTUserIdMask) >> DTUserIdOffset; }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline unsigned int Event::getDeviceTag() const
+    { return myDeviceTag; }
 
     ///////////////////////////////////////////////////////////////////////////
     inline Event::Type Event::getType() const
@@ -253,6 +358,14 @@ namespace omicron
     ///////////////////////////////////////////////////////////////////////////
     inline bool Event::isProcessed() const
     { return ((myFlags & Processed) == Processed); }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline void Event::setExclusive() const
+    { myFlags |= Exclusive; }
+
+    ///////////////////////////////////////////////////////////////////////////
+    inline bool Event::isExclusive() const
+    { return ((myFlags & Exclusive) == Exclusive); }
 
     ///////////////////////////////////////////////////////////////////////////
     inline const Vector3f& Event::getPosition() const
@@ -341,7 +454,7 @@ namespace omicron
     ///////////////////////////////////////////////////////////////////////////
     inline bool Event::isFrom(Service* svc, int sourceId) const
     {
-        return (myServiceId == svc->getServiceId() && mySourceId == sourceId);
+        return (getServiceId() == svc->getServiceId() && mySourceId == sourceId);
     }
 
     ///////////////////////////////////////////////////////////////////////////
