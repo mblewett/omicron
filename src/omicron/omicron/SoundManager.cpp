@@ -704,7 +704,7 @@ void SoundManager::updateInstancePositions()
 			msg2.pushInt32(inst->getID());
 			msg2.pushFloat(newVol);
 			
-			// Calculate Apparent Sound Width (ASW) relative to user
+			// Calculate Individual Sound Width (ISW) relative to user
 			updateObjectWidth(inst->getWidth(), objToUser3D, inst->getID());
 			environment->getSoundManager()->sendOSCMessage(msg2);
 
@@ -820,7 +820,7 @@ void SoundManager::updateObjectWidth(float width, float objToUser3D, int instID)
 	msg.pushInt32( instID );
 	msg.pushFloat( width );
 	sendOSCMessage(msg);
-	ofmsg("%1%: width", %width );
+	//ofmsg("%1%: width", %width );
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void SoundManager::removeInstanceNode(int id)
